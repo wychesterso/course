@@ -35,56 +35,6 @@ def get_course_info(course_code):
     }
 
 
-
-path = str(input("Enter path: "))
-search_term = str(input("Enter search term: "))
-
-
-url = f'https://programs-courses.uq.edu.au/search.html?keywords={search_term}&searchType=coursecode&archived=true&CourseParameters%5Bsemester%5D='
-
-response = requests.get(url)
-
-# check if the request was successful
-if response.status_code == 200:
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
-
-    # find all course list items
-    courses = soup.find_all('li')
-
-    with open(fr'{path}\courses.csv', 'w', newline='', encoding='utf-8') as course_file:
-        writer = csv.writer(course_file)
-
-        for course in courses:
-            
-            # extract course code
-            course_code_tag = course.find('a', class_='code')
-            course_code = course_code_tag.text.strip() if course_code_tag else None
-
-            # extract course title
-            course_title_tag = course.find('a', class_='title')
-            course_title = course_title_tag.text.strip() if course_title_tag else None
-
-            # write only if both code and title exist
-            if course_code and course_title:
-                course_info = get_course_info(course_code)
-                writer.writerow([
-                    course_code, course_title, 
-                    course_info.get('Course Level'), 
-                    course_info.get('Faculty'),
-                    course_info.get('Units'), 
-                    course_info.get('Duration'),
-                    course_info.get('Incompatible Courses'), 
-                    course_info.get('Prerequisites'),
-                    course_info.get('Recommended Prerequisites')
-                ])
-
-else:
-    print(response.status_code)   
-    
-
-
-
 def get_course_offerings(course_code):
     
     course_url = f'https://programs-courses.uq.edu.au/course.html?course_code={course_code}'
@@ -109,23 +59,79 @@ def get_course_offerings(course_code):
 
 
 
-valid_semesters = ["Summer Semester, 2024", "Semester 1, 2025", "Semester 2, 2025"]
 
-
-
-with open(fr'{path}\courses.csv', 'r', newline='', encoding='utf-8') as course_file:
+path = str(input("Enter path: "))
     
-    reader = csv.reader(course_file)
+while (True):
     
-    with open(fr'{path}\offerings.csv', 'w', newline='', encoding='utf-8') as offering_file:
-        writer = csv.writer(offering_file)
+    search_term = str(input("Enter search term: "))
+    
+    if search_term == "q":
+        break
+
+
+    url = f'https://programs-courses.uq.edu.au/search.html?keywords={search_term}&searchType=coursecode&archived=true&CourseParameters%5Bsemester%5D='
+
+    response = requests.get(url)
+
+    # check if the request was successful
+    if response.status_code == 200:
         
-        for row in reader:
-            course_code = row[0]
-            offerings = get_course_offerings(course_code)
-            
-            for offering in offerings:
-                semester = offering[0]
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # find all course list items
+        courses = soup.find_all('li')
+
+        with open(fr'{path}\courses.csv', 'w', newline='', encoding='utf-8') as course_file:
+            writer = csv.writer(course_file)
+
+            for course in courses:
                 
-                if semester in valid_semesters:
-                    writer.writerow([course_code, offering[0], offering[1], offering[2]])
+                # extract course code
+                course_code_tag = course.find('a', class_='code')
+                course_code = course_code_tag.text.strip() if course_code_tag else None
+
+                # extract course title
+                course_title_tag = course.find('a', class_='title')
+                course_title = course_title_tag.text.strip() if course_title_tag else None
+
+                # write only if both code and title exist
+                if course_code and course_title:
+                    course_info = get_course_info(course_code)
+                    writer.writerow([
+                        course_code, course_title, 
+                        course_info.get('Course Level'), 
+                        course_info.get('Faculty'),
+                        course_info.get('Units'), 
+                        course_info.get('Duration'),
+                        course_info.get('Incompatible Courses'), 
+                        course_info.get('Prerequisites'),
+                        course_info.get('Recommended Prerequisites')
+                    ])
+
+    else:
+        print(response.status_code)   
+        
+
+
+
+    valid_semesters = ["Summer Semester, 2024", "Semester 1, 2025", "Semester 2, 2025"]
+
+
+
+    with open(fr'{path}\courses.csv', 'r', newline='', encoding='utf-8') as course_file:
+        
+        reader = csv.reader(course_file)
+        
+        with open(fr'{path}\offerings.csv', 'w', newline='', encoding='utf-8') as offering_file:
+            writer = csv.writer(offering_file)
+            
+            for row in reader:
+                course_code = row[0]
+                offerings = get_course_offerings(course_code)
+                
+                for offering in offerings:
+                    semester = offering[0]
+                    
+                    if semester in valid_semesters:
+                        writer.writerow([course_code, offering[0], offering[1], offering[2]])
