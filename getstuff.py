@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 
+VALID_SEMESTERS = ["Summer Semester, 2024", "Semester 1, 2025", "Semester 2, 2025"]
 
 def get_course_info(course_code):
     
@@ -11,37 +12,13 @@ def get_course_info(course_code):
     soup = BeautifulSoup(response.content, 'html.parser')
 
     course_level = soup.find('p', {'id': 'course-level'}).text.strip() if soup.find('p', {'id': 'course-level'}) else None
-    
     course_faculty = soup.find('p', {'id': 'course-faculty'}).text.strip() if soup.find('p', {'id': 'course-faculty'}) else None
-    
     course_units = soup.find('p', {'id': 'course-units'}).text.strip() if soup.find('p', {'id': 'course-units'}) else None
-    
     course_duration = soup.find('p', {'id': 'course-duration'}).text.strip() if soup.find('p', {'id': 'course-duration'}) else None
-    
     course_incompatible = soup.find('p', {'id': 'course-incompatible'}).text.strip() if soup.find('p', {'id': 'course-incompatible'}) else None
-    
     course_prerequisite = soup.find('p', {'id': 'course-prerequisite'}).text.strip() if soup.find('p', {'id': 'course-prerequisite'}) else None
-    
     course_recommended_prerequisite = soup.find('p', {'id': 'course-recommended-prerequisite'}).text.strip() if soup.find('p', {'id': 'course-recommended-prerequisite'}) else None
     
-    return {
-        'Course Level': course_level,
-        'Faculty': course_faculty,
-        'Units': course_units,
-        'Duration': course_duration,
-        'Incompatible Courses': course_incompatible,
-        'Prerequisites': course_prerequisite,
-        'Recommended Prerequisites': course_recommended_prerequisite
-    }
-
-
-def get_course_offerings(course_code):
-    
-    course_url = f'https://programs-courses.uq.edu.au/course.html?course_code={course_code}'
-
-    response = requests.get(course_url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-
     offerings = []
     offering_rows = soup.find_all('tr', {'id': lambda x: x and x.startswith('course-offering')})
     
@@ -55,7 +32,15 @@ def get_course_offerings(course_code):
         
         offerings.append((semester, location, mode))
     
-    return offerings
+    return {
+        'Course Level': course_level,
+        'Faculty': course_faculty,
+        'Units': course_units,
+        'Duration': course_duration,
+        'Incompatible Courses': course_incompatible,
+        'Prerequisites': course_prerequisite,
+        'Recommended Prerequisites': course_recommended_prerequisite
+    }, offerings
 
 
 
@@ -82,8 +67,10 @@ while (True):
         # find all course list items
         courses = soup.find_all('li')
 
-        with open(fr'{path}\courses.csv', 'w', newline='', encoding='utf-8') as course_file:
-            writer = csv.writer(course_file)
+        with open(fr'{path}\courses.csv', 'w', newline='', encoding='utf-8') as course_file, \
+             open(fr'{path}\offerings.csv', 'w', newline='', encoding='utf-8') as offering_file:
+            course_writer = csv.writer(course_file)
+            offering_writer = csv.writer(offering_file)
 
             for course in courses:
                 
@@ -97,8 +84,8 @@ while (True):
 
                 # write only if both code and title exist
                 if course_code and course_title:
-                    course_info = get_course_info(course_code)
-                    writer.writerow([
+                    course_info, offerings = get_course_info(course_code)
+                    course_writer.writerow([
                         course_code, course_title, 
                         course_info.get('Course Level'), 
                         course_info.get('Faculty'),
@@ -109,29 +96,12 @@ while (True):
                         course_info.get('Recommended Prerequisites')
                     ])
 
+                    for offering in offerings:
+                        semester = offering[0]
+                        if semester in VALID_SEMESTERS:
+                            offering_writer.writerow([course_code, offering[0], offering[1], offering[2]])
+                            
+                        
+
     else:
-        print(response.status_code)   
-        
-
-
-
-    valid_semesters = ["Summer Semester, 2024", "Semester 1, 2025", "Semester 2, 2025"]
-
-
-
-    with open(fr'{path}\courses.csv', 'r', newline='', encoding='utf-8') as course_file:
-        
-        reader = csv.reader(course_file)
-        
-        with open(fr'{path}\offerings.csv', 'w', newline='', encoding='utf-8') as offering_file:
-            writer = csv.writer(offering_file)
-            
-            for row in reader:
-                course_code = row[0]
-                offerings = get_course_offerings(course_code)
-                
-                for offering in offerings:
-                    semester = offering[0]
-                    
-                    if semester in valid_semesters:
-                        writer.writerow([course_code, offering[0], offering[1], offering[2]])
+        print(response.status_code)
