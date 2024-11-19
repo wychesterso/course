@@ -97,11 +97,11 @@ def get_course_offerings(course_code):
     
     for row in offering_rows:
         
-        semester = row.find('a', {'class': 'course-offering-year'}).text.strip() if row.find('a', {'class': 'course-offering-year'}) else "No semester info"
+        semester = row.find('a', {'class': 'course-offering-year'}).text.strip() if row.find('a', {'class': 'course-offering-year'}) else None
         semester = semester.split('(')[0].strip()  # remove date
         
-        location = row.find('td', {'class': 'course-offering-location'}).text.strip() if row.find('td', {'class': 'course-offering-location'}) else "No location info"
-        mode = row.find('td', {'class': 'course-offering-mode'}).text.strip() if row.find('td', {'class': 'course-offering-mode'}) else "No mode info"
+        location = row.find('td', {'class': 'course-offering-location'}).text.strip() if row.find('td', {'class': 'course-offering-location'}) else None
+        mode = row.find('td', {'class': 'course-offering-mode'}).text.strip() if row.find('td', {'class': 'course-offering-mode'}) else None
         
         offerings.append((semester, location, mode))
     
