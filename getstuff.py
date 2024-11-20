@@ -61,7 +61,6 @@ while (True):
 
     # check if the request was successful
     if response.status_code == 200:
-        
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # find all course list items
